@@ -1,0 +1,823 @@
+openapi: 3.0.3
+info:
+  title: Personio API Proxy
+  description: >
+    Proxy service for selected Personio API endpoints. Handles Personio
+    authentication internally — no authentication required on this service.
+    Designed for integration with IBM watsonx Orchestrate via OpenAPI Executor.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+
+paths:
+  /vacation:
+    post:
+      operationId: createVacation
+      summary: Create absence
+      description: >
+        Creates a new absence entry in Personio for the employee identified by
+        their email address. Supports full-day and half-day absences. This is a
+        real write against the employee's Personio record — once successful, the
+        absence appears in Personio immediately (or is pending manager approval
+        unless skip_approval is true). IMPORTANT: this endpoint always responds
+        with HTTP 200, even when Personio rejects the request (e.g. overlapping
+        absence, no absence policy assigned to the employee, invalid
+        vacation_type_id) — always inspect the `error` field in the response body
+        to determine whether the absence was actually created before telling the
+        user it succeeded.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVacationRequest'
+      responses:
+        '200':
+          description: >
+            Always returned, even on failure. Check the `error` field in the
+            body — if it is non-null, Personio rejected the request and no
+            absence was created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateVacationResponse'
+
+  /vacation/overview:
+    post:
+      operationId: getVacationOverview
+      summary: Get vacation overview
+      description: >
+        Returns the vacation balance and all planned future absences for the
+        employee identified by their email address. The response contains a
+        Markdown-formatted string suitable for IBM watsonx Orchestrate rich
+        responses. Scope: only the paid-vacation balance is shown, and only
+        absences of the paid-vacation type with a start date in the future
+        (or today) are listed — past absences and other absence types (e.g.
+        sick leave) are not included.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VacationOverviewRequest'
+      responses:
+        '200':
+          description: Vacation overview returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VacationOverviewResponse'
+        '404':
+          description: No employee found for the given email address.
+
+  /documents:
+    post:
+      operationId: listDocuments
+      summary: List employee documents
+      description: >
+        Returns all documents for the employee identified by their email address.
+        The response includes a Markdown table (for wxO rich display) and a raw
+        list of documents — use the `id` field from the list to call the download
+        or comment endpoints.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListDocumentsRequest'
+      responses:
+        '200':
+          description: Document list returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListDocumentsResponse'
+        '404':
+          description: No employee found for the given email address.
+
+  /documents/{id}/link:
+    get:
+      operationId: getDocumentLink
+      summary: Get document download link
+      description: >
+        Fetches the document binary from Personio, caches it for 8 hours, and
+        returns a public download URL. The download_url points to this proxy
+        (not directly to Personio) and only works for 8 hours after this call —
+        after expires_at, the cache entry is gone and this endpoint must be
+        called again to get a fresh link. Use the returned download_url as a
+        Markdown link for the end user.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Personio document ID.
+      responses:
+        '200':
+          description: Download link returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentLinkResponse'
+        '404':
+          description: Document not found in Personio.
+
+  /documents/{id}/comment:
+    post:
+      operationId: commentDocument
+      summary: Add comment to document
+      description: >
+        Sets the comment on a Personio document. This REPLACES any existing
+        comment entirely (it does not append to it) — calling this again
+        overwrites the previous comment. The comment is visible to any Personio
+        user who can view this document. Uses the Personio
+        PATCH /v2/document-management/documents/{document_id} endpoint internally.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Personio document ID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentDocumentRequest'
+      responses:
+        '200':
+          description: Comment saved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentDocumentResponse'
+        '404':
+          description: Document not found.
+        '422':
+          description: Invalid comment value.
+
+  /recruiting/jobs:
+    post:
+      operationId: listJobs
+      summary: List jobs
+      description: >
+        Returns all jobs from Personio Recruiting (max. 200). Optionally
+        filterable by update date. The result order is whatever Personio's API
+        returns and is NOT guaranteed to follow any particular field (it is not
+        sorted by update date or name) — sort the `jobs` array client-side if a
+        specific order is required.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListJobsRequest'
+      responses:
+        '200':
+          description: Job list returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListJobsResponse'
+
+  /recruiting/jobs/{id}:
+    get:
+      operationId: getJob
+      summary: Get job
+      description: >
+        Returns the full Personio job object for a single job by its ID,
+        including fields not present in the list endpoint's JobItem — notably
+        `hiring_team` (array of `{person: {id}, role: {name}}`, e.g. who is the
+        hiring manager / recruiter) and `category`/`company` details. Timestamps
+        (`created_at`, `updated_at`) are nested `{date-time, timezone}` objects,
+        not plain strings.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Personio job ID.
+      responses:
+        '200':
+          description: Job details returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobDetailResponse'
+        '404':
+          description: Job not found.
+
+  /recruiting/jobs/{id}/posting-text:
+    post:
+      operationId: getJobPostingBlocks
+      summary: Generate job posting text
+      description: >
+        Generates German-language marketing text blocks (company intro,
+        responsibilities, candidate profile, benefits) for a job posting. Only
+        the job title and department are looked up live from Personio and merged
+        into the templates — the company information itself ("Agentix Corp", a
+        fictional software company in Ehningen founded in 2026) is fixed example
+        content for demo purposes and does NOT reflect the real employer using
+        this proxy. Do not present this text as ready-to-publish copy for a real
+        company without first replacing the company block with real information.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Personio job ID.
+      responses:
+        '200':
+          description: Posting text blocks returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobPostingBlocksResponse'
+        '404':
+          description: Job not found.
+
+  /recruiting/jobs/{id}/publish-linkedin:
+    post:
+      operationId: publishJobToLinkedin
+      summary: Publish job to LinkedIn (dummy)
+      description: >
+        Simulates publishing a job posting to LinkedIn. IMPORTANT: this is a
+        dummy/demo endpoint only — it does NOT call the real LinkedIn API and does
+        NOT create any actual LinkedIn listing (LinkedIn's job posting API requires
+        their restricted Talent Solutions Partner Program, which this proxy does
+        not have access to). The returned posting_url, linkedin_posting_id, and
+        published_at are fabricated. Never tell an end user their job is now live
+        on LinkedIn based on this response — clarify that it is a simulation if
+        asked.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Personio job ID.
+      responses:
+        '200':
+          description: Simulated publish confirmation returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishLinkedinResponse'
+        '404':
+          description: Job not found.
+
+  /recruiting/applications:
+    post:
+      operationId: listApplications
+      summary: List applications
+      description: >
+        Returns all applications from Personio Recruiting (max. 200). Optionally
+        filterable by candidate email, candidate name, or update date. The
+        result order is whatever Personio's API returns and is NOT guaranteed
+        to follow any particular field — sort the `applications` array
+        client-side if a specific order (e.g. newest first) is required.
+        `candidate_name` is matched as a case-insensitive substring against the
+        already-fetched list (applied after `candidate_email`/`updated_after`,
+        which are sent to Personio directly); an empty result simply means no
+        applications matched, not an error.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListApplicationsRequest'
+      responses:
+        '200':
+          description: Application list returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListApplicationsResponse'
+
+  /recruiting/applications/{id}:
+    get:
+      operationId: getApplication
+      summary: Get application
+      description: >
+        Returns the full Personio application object for a single application by
+        its ID, including nested `candidate`, `job`, `channel`, and
+        `current_stage` objects not present in the list endpoint's
+        ApplicationItem. If the application is anonymized, candidate fields will
+        be null/empty per Personio's data retention rules.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Personio application ID.
+      responses:
+        '200':
+          description: Application details returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationDetailResponse'
+        '404':
+          description: Application not found.
+
+  /recruiting/applications/{id}/stages:
+    get:
+      operationId: getApplicationStages
+      summary: Get application stages
+      description: >
+        Returns the stage transition history for an application, newest first
+        (e.g. screening → interview → offer → hired/rejected). Stage names are
+        configured per company in Personio and vary between Personio instances.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Personio application ID.
+      responses:
+        '200':
+          description: Stage history returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StagesResponse'
+        '404':
+          description: Application not found.
+
+  /recruiting/candidates:
+    post:
+      operationId: listCandidates
+      summary: List candidates
+      description: >
+        Returns all candidates from Personio Recruiting (max. 200). Optionally
+        filterable by email, name, or update date. The result order is whatever
+        Personio's API returns and is NOT guaranteed to follow any particular
+        field — sort the `candidates` array client-side if a specific order is
+        required. `name` is matched as a case-insensitive substring against
+        first/last name on the already-fetched list (applied after
+        `email`/`updated_after`, which are sent to Personio directly); an empty
+        result simply means no candidates matched, not an error.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListCandidatesRequest'
+      responses:
+        '200':
+          description: Candidate list returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListCandidatesResponse'
+
+components:
+  schemas:
+    CreateVacationRequest:
+      type: object
+      required:
+        - email
+        - start_date
+        - end_date
+      properties:
+        email:
+          type: string
+          description: Email address of the employee used to look up their Personio ID.
+          example: max.mustermann@company.com
+        start_date:
+          type: string
+          description: First day of absence in RFC3339 format.
+          example: "2026-07-01T00:00:00Z"
+        end_date:
+          type: string
+          description: >
+            The first day on which the employee is no longer on vacation
+            (exclusive end date). For a Monday–Friday absence, set this to
+            the following Monday.
+          example: "2026-07-06T00:00:00Z"
+        half_day_start:
+          type: boolean
+          description: True if the first day is a half day (afternoon off).
+          default: false
+        half_day_end:
+          type: boolean
+          description: True if the last absence day is a half day (morning off).
+          default: false
+        vacation_type_id:
+          type: string
+          description: >
+            Personio absence type ID (UUID). Defaults to the paid-vacation type.
+            There is currently no endpoint on this proxy to list other valid
+            type IDs (e.g. sick leave, unpaid leave) — look them up in the
+            Personio UI under absence types if a non-default type is needed.
+            Using an ID that doesn't exist or isn't assigned to the employee
+            will cause Personio to reject the request (see the `error` field).
+          default: "73cd0de8-d498-4949-b94e-1d0c3191398d"
+        skip_approval:
+          type: boolean
+          description: Skip the Personio approval workflow.
+          default: false
+
+    CreateVacationResponse:
+      type: object
+      required:
+        - status_code
+        - json_body
+      properties:
+        status_code:
+          type: integer
+          description: >
+            HTTP status code returned by Personio's own API for the absence
+            creation call — NOT the status code of this proxy response, which
+            is always 200.
+        json_body:
+          type: object
+          description: Full JSON body returned by the Personio API.
+          additionalProperties: true
+        url:
+          type: string
+          nullable: true
+          description: Self-link to the created absence resource. Null if creation failed.
+        error:
+          type: string
+          nullable: true
+          description: >
+            Non-null if Personio rejected the request (e.g. overlapping
+            absence, no absence policy assigned to the employee, invalid
+            vacation_type_id). When set, no absence was created in Personio
+            despite this proxy's HTTP 200 status — always check this field
+            before confirming success to the user.
+
+    VacationOverviewRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          description: Email address of the employee used to look up their Personio ID.
+          example: max.mustermann@company.com
+
+    VacationOverviewResponse:
+      type: object
+      required:
+        - result
+      properties:
+        result:
+          type: string
+          description: >
+            Markdown-formatted vacation overview containing the current balance
+            (paid vacation available and effective) plus a table of all planned
+            future absences (start, end, approval status, days).
+
+    ListDocumentsRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          description: Employee email address used to look up their Personio documents.
+          example: max.mustermann@company.com
+
+    DocumentItem:
+      type: object
+      required:
+        - id
+        - name
+        - category
+        - comment
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Document ID — use this for the download or comment endpoints.
+        name:
+          type: string
+          description: Document name.
+        category:
+          type: string
+          description: Document category name.
+        comment:
+          type: string
+          description: Current comment on the document.
+        created_at:
+          type: string
+          description: ISO 8601 creation timestamp.
+
+    ListDocumentsResponse:
+      type: object
+      required:
+        - result
+        - documents
+      properties:
+        result:
+          type: string
+          description: Markdown-formatted document list with IDs visible in the table.
+        documents:
+          type: array
+          description: Raw document list — IDs are available here for subsequent calls.
+          items:
+            $ref: '#/components/schemas/DocumentItem'
+
+    CommentDocumentRequest:
+      type: object
+      required:
+        - comment
+      properties:
+        comment:
+          type: string
+          description: Comment text to add to the document.
+          example: Reviewed and approved.
+
+    CommentDocumentResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          description: True if the comment was saved successfully.
+        message:
+          type: string
+          description: Human-readable confirmation or error detail.
+
+    ListJobsRequest:
+      type: object
+      properties:
+        updated_after:
+          type: string
+          description: Only return jobs updated after this timestamp (ISO8601).
+          example: "2026-01-01T00:00:00Z"
+
+    JobItem:
+      type: object
+      required: [id, name, department, category, updated_at]
+      properties:
+        id:
+          type: string
+          description: Personio job ID.
+        name:
+          type: string
+          description: Job title.
+        department:
+          type: string
+          description: Department.
+        category:
+          type: string
+          description: Category (e.g. permanent staff, talent pool).
+        updated_at:
+          type: string
+          description: Date of last update (YYYY-MM-DD).
+
+    ListJobsResponse:
+      type: object
+      required: [result, jobs]
+      properties:
+        result:
+          type: string
+          description: Markdown table of all jobs.
+        jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobItem'
+
+    JobDetailResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+          description: >
+            Full Personio job object: id, name, department, category, company,
+            hiring_team (array of {person: {id}, role: {name}}), and
+            created_at/updated_at as nested {date-time, timezone} objects.
+
+    JobPostingBlocksResponse:
+      type: object
+      required: [result, blocks]
+      properties:
+        result:
+          type: string
+          description: All text blocks merged into one Markdown string.
+        blocks:
+          type: object
+          description: Individual blocks, keyed by name.
+          properties:
+            about_us:
+              type: string
+              description: Company introduction (Agentix Corp).
+            responsibilities:
+              type: string
+              description: Role-specific responsibilities, based on job title and department.
+            profile:
+              type: string
+              description: Expected candidate profile.
+            benefits:
+              type: string
+              description: Benefits offered by the company.
+
+    PublishLinkedinResponse:
+      type: object
+      required: [success, message, posting_url, linkedin_posting_id, published_at]
+      properties:
+        success:
+          type: boolean
+          description: Always true (dummy simulation).
+        message:
+          type: string
+          description: Human-readable confirmation message.
+        posting_url:
+          type: string
+          description: Fabricated LinkedIn posting URL (not a real listing).
+        linkedin_posting_id:
+          type: string
+          description: Fabricated LinkedIn posting ID.
+        published_at:
+          type: string
+          description: ISO 8601 timestamp of the simulated publish action.
+
+    ListApplicationsRequest:
+      type: object
+      properties:
+        candidate_email:
+          type: string
+          description: Only return applications for this candidate (email address).
+          example: max.mustermann@gmail.com
+        candidate_name:
+          type: string
+          description: Filter applications by candidate name (substring, case-insensitive).
+          example: Mustermann
+        updated_after:
+          type: string
+          description: Only return applications updated after this timestamp (ISO8601).
+          example: "2026-01-01T00:00:00Z"
+
+    ApplicationItem:
+      type: object
+      required: [id, application_date, candidate_name, candidate_email, job_name, job_department, current_stage, is_anonymized]
+      properties:
+        id:
+          type: string
+          description: Personio application ID — use this to call getApplication or getApplicationStages.
+        application_date:
+          type: string
+          description: Date the application was submitted (YYYY-MM-DD).
+        candidate_name:
+          type: string
+          description: >
+            Full name of the candidate ("first_name last_name"), or the literal
+            string "Anonymized" if Personio has anonymized this candidate's
+            data (see is_anonymized).
+        candidate_email:
+          type: string
+          description: Candidate's email address. Empty string if the application is anonymized.
+        job_name:
+          type: string
+          description: Title of the job the candidate applied to.
+        job_department:
+          type: string
+          description: Department of the job the candidate applied to.
+        current_stage:
+          type: string
+          description: >
+            Name of the current recruiting pipeline stage (e.g. screening,
+            interview, hired, rejected). Stage names are configured per company
+            in Personio and vary between Personio instances.
+        is_anonymized:
+          type: boolean
+          description: >
+            True if Personio has anonymized this candidate's personal data
+            (e.g. due to GDPR data retention rules). When true, candidate_name
+            is the literal string "Anonymized" and candidate_email is empty.
+
+    ListApplicationsResponse:
+      type: object
+      required: [result, applications]
+      properties:
+        result:
+          type: string
+          description: Markdown table of all applications.
+        applications:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApplicationItem'
+
+    ApplicationDetailResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+          description: >
+            Full Personio application object: nested candidate, job,
+            channel, current_stage objects, plus is_anonymized and
+            created_at/updated_at as nested {date-time, timezone} objects.
+            If is_anonymized is true, candidate fields are null/empty.
+
+    StageTransition:
+      type: object
+      required: [stage_name, stage_type, entered_at]
+      properties:
+        stage_name:
+          type: string
+          description: Name of the pipeline stage, as configured in this Personio instance (e.g. "Neue Bewerbung").
+        stage_type:
+          type: string
+          description: Generic stage category Personio assigns internally (e.g. screening, interview, hired, rejected).
+        entered_at:
+          type: string
+          description: ISO 8601 timestamp (UTC) when the application entered this stage.
+
+    StagesResponse:
+      type: object
+      required: [result, stages]
+      properties:
+        result:
+          type: string
+          description: Markdown overview of the stage history.
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/StageTransition'
+
+    ListCandidatesRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          description: Filter candidates by email address.
+          example: max.mustermann@gmail.com
+        name:
+          type: string
+          description: Filter candidates by first or last name (substring, case-insensitive).
+          example: Mustermann
+        updated_after:
+          type: string
+          description: Only return candidates updated after this timestamp (ISO8601).
+          example: "2026-01-01T00:00:00Z"
+
+    CandidateItem:
+      type: object
+      required: [id, first_name, last_name, email, phone, location, application_count]
+      properties:
+        id:
+          type: string
+          description: Personio candidate ID.
+        first_name:
+          type: string
+          description: Candidate's first name.
+        last_name:
+          type: string
+          description: Candidate's last name.
+        email:
+          type: string
+          description: Candidate's email address.
+        phone:
+          type: string
+          description: Candidate's phone number. Empty string if not provided.
+        location:
+          type: string
+          description: Candidate's location/city. Empty string if not provided.
+        application_count:
+          type: integer
+          description: Number of applications this candidate has submitted across all jobs.
+
+    ListCandidatesResponse:
+      type: object
+      required: [result, candidates]
+      properties:
+        result:
+          type: string
+          description: Markdown table of all candidates.
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/CandidateItem'
+
+    DocumentLinkResponse:
+      type: object
+      required:
+        - download_url
+        - filename
+        - expires_at
+      properties:
+        download_url:
+          type: string
+          description: Public URL to download the document (valid for 8 hours).
+        filename:
+          type: string
+          description: Original filename of the document.
+        expires_at:
+          type: string
+          description: ISO 8601 timestamp when the cached link expires.
