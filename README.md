@@ -26,9 +26,10 @@ Ein gemeinsames Hands-on-Lab von **IBM** und **SVA**
   - [4. Wissensdatenbank: HR-FAQ \& Richtlinien testen](#4-wissensdatenbank-hr-faq--richtlinien-testen)
     - [Schritt-für-Schritt-Anleitung](#schritt-für-schritt-anleitung-1)
   - [5. Beispiel-Use-Cases](#5-beispiel-use-cases)
-    - [Use-Case 1: __](#use-case-1-)
-    - [Use-Case 2: __](#use-case-2-)
-    - [Use-Case 3: __](#use-case-3-)
+    - [Use-Case 1: AskHR – Richtlinien, Dokumente & Urlaub](#use-case-1-askhr--richtlinien-dokumente--urlaub)
+    - [Use-Case 2: Bewerbermanagement](#use-case-2-bewerbermanagement)
+    - [Use-Case 3: RecruitingAgent – Stellenausschreibungen erstellen](#use-case-3-recruitingagent--stellenausschreibungen-erstellen)
+    - [Use-Case 4: HR datenbasiert steuern und Risiken früh erkennen](#use-case-4-hr-datenbasiert-steuern-und-risiken-früh-erkennen)
   - [Hilfreiche Links](#hilfreiche-links)
 
 ---
