@@ -1,5 +1,4 @@
 <img src="resources/img/sva.png" alt="SVA Logo" align="right" width="100">
-<!-- TODO @Jan: SVA-Logo unter resources/img/sva-logo.png ablegen -->
 
 <br/><br/>
 
@@ -24,6 +23,7 @@ Ein gemeinsames Hands-on-Lab von **IBM** und **SVA**
   - [3. Wie integriere ich die bereitgestellten Tools?](#3-wie-integriere-ich-die-bereitgestellten-tools)
     - [Schritt-für-Schritt-Anleitung](#schritt-für-schritt-anleitung)
   - [4. Wissensdatenbank: HR-FAQ \& Richtlinien testen](#4-wissensdatenbank-hr-faq--richtlinien-testen)
+    - [Schritt-für-Schritt-Anleitung](#schritt-für-schritt-anleitung-1)
   - [5. Beispiel-Use-Cases](#5-beispiel-use-cases)
     - [Use-Case 1: __](#use-case-1-)
     - [Use-Case 2: __](#use-case-2-)
@@ -160,14 +160,73 @@ So lassen sich beide Bausteine kombinieren:
 - **Tools** → für *Aktionen* (etwas in Personio tun)
 - **Knowledge Base** → für *Wissen* (Fragen zu Richtlinien & Abläufen beantworten)
 
-> 📝 **Anleitung folgt.** Die Schritt-für-Schritt-Anleitung zum Anlegen der Knowledge Base und zum Hochladen der FAQ-Datei ergänzen wir noch.
-> <!-- TODO @Jan/SVA: Schritt-für-Schritt-Anleitung (Knowledge Base anlegen, FAQ-Datei hochladen, im Chat testen) ergänzen – ggf. mit Screenshots unter resources/img/. --> TODO: Sage dass es sich um die Test Firma Agentic Crop. handelt
+### Schritt-für-Schritt-Anleitung
+
+> 💡 **Hinweis:** Die FAQ stammt von der fiktiven Testfirma **Agentix Corp.** – bitte diesen Namen auch beim Anlegen der Knowledge Base verwenden, damit der Agent den Kontext kennt.
+
+---
+
+**Schritt 1 – Knowledge-Bereich öffnen**
+
+Klicken Sie im Agent Builder links in der Navigation auf **Knowledge**.
+
+---
+
+**Schritt 2 – Neue Quelle hinzufügen**
+
+Klicken Sie auf den Button **Add source +**.
+
+![Schritt 2: Auf 'Add source +' klicken](resources/img/kb-02-add-source.png)
+
+---
+
+**Schritt 3 – „New knowledge" wählen**
+
+Wählen Sie im Dialog die Option **New knowledge**.
+
+![Schritt 3: 'New knowledge' auswählen](resources/img/kb-03-new-knowledge.png)
+
+---
+
+**Schritt 4 – Upload-Option wählen**
+
+Klicken Sie unten auf **Upload files** und bestätigen Sie mit **Next**.
+
+![Schritt 4: 'Upload files' auswählen und auf Next klicken](resources/img/kb-04-upload-files.png)
+
+---
+
+**Schritt 5 – FAQ-Datei hochladen**
+
+Laden Sie die Datei **`Agentix_Corp_HR_FAQ.pdf`** hoch und klicken Sie anschließend auf **Next**.
+
+> 📄 **Datei:** [`Agentix_Corp_HR_FAQ.pdf`](./Agentix_Corp_HR_FAQ.pdf)
+
+![Schritt 5: Agentix_Corp_HR_FAQ.pdf hochladen und auf Next klicken](resources/img/kb-05-upload-pdf.png)
+
+---
+
+**Schritt 6 – Name und Beschreibung vergeben**
+
+Geben Sie der Knowledge Base einen aussagekräftigen **Namen** (z. B. *Agentix Corp HR FAQ*) und eine **detaillierte Beschreibung**, damit der Agent weiß, welche Inhalte darin enthalten sind – z. B.:
+
+> *Enthält HR-FAQs und Unternehmensrichtlinien der Agentix Corp, u. a. zu Urlaub, Krankmeldung, Arbeitszeiten und internen Abläufen.*
+
+Klicken Sie abschließend auf **Save**.
+
+![Schritt 6: Name und Beschreibung eingeben und auf Save klicken](resources/img/kb-06-name-description.png)
+
+---
+
+> ✅ **Geschafft!** Die Knowledge Base ist angelegt und steht Ihrem Agenten ab sofort zur Verfügung.
+>
+> Testen Sie im Chat, ob Ihr Agent Fragen zu HR-Richtlinien nun auf Basis der FAQ beantwortet. Wenn die Antworten ungenau sind, lohnt es sich, die **Beschreibung der Knowledge Base** zu schärfen – sie ist der wichtigste Hinweis für den Agenten, *wann* er dieses Wissen nutzen soll.
 
 ---
 
 ## 5. Beispiel-Use-Cases
 
-Die folgenden Use-Cases dienen Ihnen als Inspiration und Startpunkt. Sie müssen sie nicht 1:1 (TODO: besser formulieren) umsetzen – kombinieren, erweitern oder erfinden Sie gerne eigene Szenarien.
+Die folgenden Use-Cases dienen Ihnen als Inspiration und Startpunkt. Fühlen Sie sich nicht daran gebunden – kombinieren, erweitern oder erfinden Sie gerne eigene Szenarien.
 
 <!-- TODO @Jan/SVA: Use-Cases ausformulieren. Vorschlag pro Use-Case: Titel, kurzer Nutzen,
      benötigte Tools, Beispiel-Dialog. Platzhalter unten als Gerüst. -->
@@ -201,8 +260,7 @@ Die folgenden Use-Cases dienen Ihnen als Inspiration und Startpunkt. Sie müssen
 ## Hilfreiche Links
 
 - **watsonx Orchestrate – Produkt-Doku:** https://www.ibm.com/docs/en/watsonx/watson-orchestrate/base
-- **Personio:** _<LINK FOLGT>_
-  <!-- TODO @Jan: Personio-Link/Umgebung ergänzen, sobald Zugang vorhanden. -->
+- **Personio:** https://sva-ibm-demo.app.personio.com/
 
 ---
 
