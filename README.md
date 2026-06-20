@@ -5,6 +5,7 @@
 # KI-Agenten im HR
 
 **Tag 2 · 24. Juni · IBM Ehningen**
+
 Ein gemeinsames Hands-on-Lab von **IBM** und **SVA**
 
 > Willkommen! In diesem Repository finden Sie alles, was Sie für den zweiten Tag des Bootcamps brauchen: Beispiel-Use-Cases, importierbare Tools (OpenAPI-Spezifikationen) und eine Schritt-für-Schritt-Anleitung, um Ihren ersten eigenen HR-Agenten in **IBM watsonx Orchestrate (wxO)** zu bauen – inklusive Anbindung an eine **Personio**-Umgebung.
@@ -73,7 +74,7 @@ Damit Sie sich um die technischen Details nicht kümmern müssen, haben wir die 
   Orchestrate) ◄───                 ◄───
 ```
 
-Dieser Vermittler erledigt im Hintergrund die Anmeldung bei Personio und stellt Ihrem Agenten **fertige Bausteine („Tools")** bereit – jedes Tool steht für eine konkrete HR-Aktion, etwa „MPlatzhalter 1" oder „PLatzhalter 2". Sie wählen einfach aus, welche dieser Bausteine Ihr Agent nutzen darf.
+Dieser Vermittler erledigt im Hintergrund die Anmeldung bei Personio und stellt Ihrem Agenten **fertige Bausteine („Tools")** bereit – jedes Tool steht für eine konkrete HR-Aktion, etwa „Create absence" oder „List applications". Sie wählen einfach aus, welche dieser Bausteine Ihr Agent nutzen darf.
 
 **Das bedeutet für Sie:**
 
@@ -228,32 +229,38 @@ Klicken Sie abschließend auf **Save**.
 
 Die folgenden Use-Cases dienen Ihnen als Inspiration und Startpunkt. Fühlen Sie sich nicht daran gebunden – kombinieren, erweitern oder erfinden Sie gerne eigene Szenarien.
 
-<!-- TODO @Jan/SVA: Use-Cases ausformulieren. Vorschlag pro Use-Case: Titel, kurzer Nutzen,
-     benötigte Tools, Beispiel-Dialog. Platzhalter unten als Gerüst. -->
+### Use-Case 1: AskHR – Richtlinien, Dokumente & Urlaub
 
-### Use-Case 1: _<Titel>_
+> Mitarbeitende stellen HR-Fragen, rufen Dokumente ab oder beantragen Urlaub – alles in einem Gespräch, ohne das System wechseln zu müssen.
 
-> _Platzhalter – wird ergänzt._
+- **Was der Agent tut:** Beantwortet Fragen zu HR-Richtlinien aus der Knowledge Base (z. B. Urlaubsanspruch, Homeoffice-Regelung, Kündigungsfristen). Listet Mitarbeiterdokumente auf, stellt zeitlich begrenzte Download-Links bereit und pflegt Kommentare. Trägt Abwesenheiten direkt in Personio ein und zeigt den aktuellen Urlaubskontostand an.
+- **Benötigte Tools:** Knowledge Base (Agentix Corp HR FAQ), `listDocuments`, `getDocumentLink`, `commentDocument`, `createVacation`, `getVacationOverview`
+- **Beispiel-Prompt:** _„Ich möchte vom 14. bis 18. Juli Urlaub nehmen – kannst du das eintragen und mir danach meinen aktuellen Kontostand zeigen?"_
 
-- **Was der Agent tut:** _<Beschreibung>_
-- **Benötigte Tools:** _<Tool A, Tool B>_
-- **Beispiel-Prompt:** _„<Beispielanfrage eines Nutzers>"_
+### Use-Case 2: Bewerbermanagement
 
-### Use-Case 2: _<Titel>_
+> Recruiter behalten den Überblick über alle Kandidaten und Bewerbungen – der Agent liefert Status und Pipeline-Verlauf auf Anfrage.
 
-> _Platzhalter – wird ergänzt._
+- **Was der Agent tut:** Sucht und listet Kandidaten und Bewerbungen nach verschiedenen Kriterien (Name, E-Mail, Stelle, Datum). Zeigt Details zu einzelnen Bewerbungen und den vollständigen Stage-Verlauf an, um den Fortschritt in der Recruiting-Pipeline nachvollziehen zu können.
+- **Benötigte Tools:** `listCandidates`, `listApplications`, `getApplication`, `getApplicationStages`
+- **Beispiel-Prompt:** _„Zeig mir alle Bewerbungen für die Stelle DevOps Engineer und den aktuellen Stage jedes Kandidaten."_
 
-- **Was der Agent tut:** _<Beschreibung>_
-- **Benötigte Tools:** _<Tool A, Tool B>_
-- **Beispiel-Prompt:** _„<Beispielanfrage eines Nutzers>"_
+### Use-Case 3: RecruitingAgent – Stellenausschreibungen erstellen
 
-### Use-Case 3: _<Titel>_
+> Aus einem bestehenden Job-Profil in Personio wird in Sekunden eine vollständige, deutsche Stellenanzeige generiert und zur Veröffentlichung vorbereitet.
 
-> _Platzhalter – wird ergänzt._
+- **Was der Agent tut:** Ruft offene Stellen und deren Details aus Personio ab, generiert auf dieser Basis strukturierte Stellenanzeigentexte (Unternehmensvorstellung, Aufgaben, Anforderungsprofil, Benefits) und simuliert die Veröffentlichung auf LinkedIn. Die generierten Texte sind ein erster Entwurf und sollten vor echter Verwendung geprüft werden.
+- **Benötigte Tools:** `listJobs`, `getJob`, `getJobPostingBlocks`, `publishJobToLinkedin`
+- **Hinweis:** `publishJobToLinkedin` ist ein Demo-Endpunkt – es wird keine echte LinkedIn-Anzeige erstellt.
+- **Beispiel-Prompt:** _„Erstelle eine Stellenanzeige für unsere offene Senior-DevOps-Stelle und bereite die LinkedIn-Veröffentlichung vor."_
 
-- **Was der Agent tut:** _<Beschreibung>_
-- **Benötigte Tools:** _<Tool A, Tool B>_
-- **Beispiel-Prompt:** _„<Beispielanfrage eines Nutzers>"_
+### Use-Case 4: HR datenbasiert steuern und Risiken früh erkennen
+
+> Recruiting-Verantwortliche behalten die Pipeline im Blick: Der Agent bündelt Bewerbungs- und Kandidatendaten aus Personio und macht Engpässe auf einen Blick sichtbar.
+
+- **Was der Agent tut:** Listet offene Stellen und zugehörige Bewerbungen auf, zeigt den aktuellen Stage je Kandidat und hebt Auffälligkeiten hervor (z. B. Bewerbungen, die lange in derselben Phase verweilen). Auf Wunsch kann auch der Urlaubskontostand einzelner Mitarbeitender abgefragt werden.
+- **Benötigte Tools:** `listJobs`, `listApplications`, `getApplication`, `getApplicationStages`, `listCandidates`, `getVacationOverview`
+- **Beispiel-Prompt:** _„Welche Bewerbungen für die Stelle Senior Backend Developer sind noch offen, und in welchem Stage befinden sie sich gerade?"_
 
 ---
 
