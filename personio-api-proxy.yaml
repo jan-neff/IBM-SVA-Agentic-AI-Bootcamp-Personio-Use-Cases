@@ -8,7 +8,7 @@ info:
   version: 1.0.0
 
 servers:
-  - url: http://localhost:8080
+  - url: https://personio-fastapi-proxy.2be09hg6sl6c.us-south.codeengine.appdomain.cloud
 
 paths:
   /vacation:
