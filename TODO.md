@@ -11,4 +11,4 @@
 
 ## OpenAPI / YAML
 
-- [ ] **YAML OpenAPI-Spezifikation erneuern** – `personio-api-proxy.yaml` aktualisieren (mit korrektem Code Engine Link)
+- [x] **YAML OpenAPI-Spezifikation erneuern** – `personio-api-proxy.yaml` aktualisieren (mit korrektem Code Engine Link)
