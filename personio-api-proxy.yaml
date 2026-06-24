@@ -48,13 +48,13 @@ paths:
       operationId: getVacationOverview
       summary: Get vacation overview
       description: >
-        Returns the vacation balance and all planned future absences for the
-        employee identified by their email address. The response contains a
+        Returns the vacation balance and all current or upcoming absences for
+        the employee identified by their email address. The response contains a
         Markdown-formatted string suitable for IBM watsonx Orchestrate rich
         responses. Scope: only the paid-vacation balance is shown, and only
-        absences of the paid-vacation type with a start date in the future
-        (or today) are listed — past absences and other absence types (e.g.
-        sick leave) are not included.
+        absences of the paid-vacation type that have not yet ended are listed
+        (includes absences already in progress) — fully past absences and other
+        absence types (e.g. sick leave) are not included.
       requestBody:
         required: true
         content:
@@ -159,16 +159,43 @@ paths:
         '422':
           description: Invalid comment value.
 
+  /persons:
+    post:
+      operationId: createPerson
+      summary: Create person
+      description: >
+        Legt eine neue Person (Mitarbeiterdatensatz) in Personio an. Nur
+        first_name und last_name sind Pflichtfelder. email muss eindeutig sein
+        (400 bei Duplikat). OAuth-Scope personio:persons:write erforderlich.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePersonRequest'
+      responses:
+        '200':
+          description: Person erfolgreich angelegt.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePersonResponse'
+        '400':
+          description: Ungültige Eingabe, z. B. doppelte E-Mail-Adresse.
+        '403':
+          description: OAuth-Scope personio:persons:write fehlt.
+
   /recruiting/jobs:
     post:
-      operationId: listJobs
+      operationId: listJobsV2
       summary: List jobs
       description: >
-        Returns all jobs from Personio Recruiting (max. 200). Optionally
-        filterable by update date. The result order is whatever Personio's API
-        returns and is NOT guaranteed to follow any particular field (it is not
-        sorted by update date or name) — sort the `jobs` array client-side if a
-        specific order is required.
+        Returns all jobs from Personio Recruiting (default max. 50, up to 200
+        via limit). Optionally filterable by update date (client-side on
+        updated_at). The result order is whatever Personio's API returns and is
+        NOT guaranteed to follow any particular field (it is not sorted by
+        update date or name) — sort the `jobs` array client-side if a specific
+        order is required.
       requestBody:
         required: true
         content:
@@ -273,18 +300,18 @@ paths:
 
   /recruiting/applications:
     post:
-      operationId: listApplications
+      operationId: listApplicationsV2
       summary: List applications
       description: >
         Returns all applications from Personio Recruiting (max. 200). Optionally
-        filterable by candidate email, candidate name, or update date. The
+        filterable by candidate email, candidate name, or application date. The
         result order is whatever Personio's API returns and is NOT guaranteed
         to follow any particular field — sort the `applications` array
         client-side if a specific order (e.g. newest first) is required.
-        `candidate_name` is matched as a case-insensitive substring against the
-        already-fetched list (applied after `candidate_email`/`updated_after`,
-        which are sent to Personio directly); an empty result simply means no
-        applications matched, not an error.
+        `candidate_email` is sent to Personio directly; `candidate_name` and
+        `updated_after` are applied client-side after the fetch (substring
+        match and application_date comparison respectively); an empty result
+        simply means no applications matched, not an error.
       requestBody:
         required: true
         content:
@@ -555,8 +582,14 @@ components:
       properties:
         updated_after:
           type: string
-          description: Only return jobs updated after this timestamp (ISO8601).
+          description: Only return jobs with updated_at on or after this date (ISO8601, client-side filter — use date prefix e.g. "2026-01-01").
           example: "2026-01-01T00:00:00Z"
+        limit:
+          type: integer
+          description: Maximum number of jobs to return (1–200, default 50).
+          default: 50
+          minimum: 1
+          maximum: 200
 
     JobItem:
       type: object
@@ -659,8 +692,14 @@ components:
           example: Mustermann
         updated_after:
           type: string
-          description: Only return applications updated after this timestamp (ISO8601).
+          description: Only return applications with an application_date on or after this date (ISO8601, client-side filter — use date prefix e.g. "2026-01-01").
           example: "2026-01-01T00:00:00Z"
+        limit:
+          type: integer
+          description: Maximum number of applications to return (1–200, default 50).
+          default: 50
+          minimum: 1
+          maximum: 200
 
     ApplicationItem:
       type: object
@@ -804,6 +843,60 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CandidateItem'
+
+    CreatePersonRequest:
+      type: object
+      required:
+        - first_name
+        - last_name
+      properties:
+        first_name:
+          type: string
+          description: Vorname der Person.
+          example: Jan
+        last_name:
+          type: string
+          description: Nachname der Person.
+          example: Neff
+        email:
+          type: string
+          description: E-Mail-Adresse. Muss eindeutig in Personio sein.
+          example: jan.neff@company.com
+        gender:
+          type: string
+          nullable: true
+          enum: [MALE, FEMALE, DIVERSE, UNKNOWN, UNDEFINED]
+          description: Geschlecht der Person.
+        language_code:
+          type: string
+          description: Sprachcode, z. B. 'de' oder 'en'.
+          default: de
+          example: de
+
+    CreatePersonResponse:
+      type: object
+      required:
+        - person_id
+        - first_name
+        - last_name
+        - message
+      properties:
+        person_id:
+          type: string
+          description: Personio-ID der neu angelegten Person.
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          nullable: true
+          description: E-Mail-Adresse, falls beim Anlegen angegeben.
+        message:
+          type: string
+          description: >
+            Bestätigungsnachricht mit Name und ID,
+            z. B. "Person Jan Neff erfolgreich angelegt (ID: 12345)".
 
     DocumentLinkResponse:
       type: object
